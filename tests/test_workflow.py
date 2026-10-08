@@ -1,3 +1,4 @@
+from backend.app.graph.nodes.context_nodes import investigation_node
 from backend.app.graph.workflow import run_workflow
 
 
@@ -17,3 +18,12 @@ def test_territory_plan_has_priority_accounts():
     assert plan["territory_id"] == "T001"
     assert len(plan["priority_accounts"]) > 0
     assert len(plan["recommended_actions"]) > 0
+
+
+def test_investigation_node_handles_missing_account_data():
+    state = {}
+
+    result = investigation_node(state)
+
+    assert result["investigation_result"]["account_id"] == ""
+    assert result["investigation_result"]["findings"] == []

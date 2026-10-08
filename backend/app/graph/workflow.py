@@ -1,155 +1,16 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from langgraph.graph import END, StateGraph
 
 from backend.app.graph.state import AgentState
-from backend.app.services.sales_data_service import (
-    calculate_account_kpis,
-    get_account,
-    get_accounts_by_territory,
-    get_retrieved_documents,
-    get_territory,
-    get_territory_rules,
-    prioritize_accounts,
-)
-from backend.app.rag.vector_store import SalesKnowledgeRAG
-
-rag_store = SalesKnowledgeRAG()
-
-
-def triage_node(state: AgentState) -> AgentState:
-    query = state.get("user_query", "")
-    territory_id = None
-    if "T001" in query:
-        territory_id = "T001"
-    elif "T002" in query:
-        territory_id = "T002"
-    elif "T003" in query:
-        territory_id = "T003"
-    elif "north" in query.lower():
-        territory_id = "T001"
-
-    state["intent"] = "TERRITORY_PLANNING" if "plan" in query.lower() else "ACCOUNT_PRIORITIZATION"
-    state["territory_id"] = territory_id
-    state["entities"] = {"territory_id": territory_id}
-    return state
-
-
-def territory_data_node(state: AgentState) -> AgentState:
-    territory_id = state.get("territory_id")
-    if territory_id:
-        state["territory_data"] = get_territory(territory_id)
-        state["account_data"] = {"accounts": get_accounts_by_territory(territory_id)}
-    else:
-        state["territory_data"] = {}
-        state["account_data"] = {"accounts": []}
-    return state
-
-
-def kpi_node(state: AgentState) -> AgentState:
-    account_data = state.get("account_data", {})
-    accounts = account_data.get("accounts", [])
-    kpis = []
-    for account in accounts:
-        kpis.append(calculate_account_kpis(account["account_id"]))
-    state["kpi_results"] = kpis
-    state["confidence"] = 0.9
-    return state
-
-
-def prioritization_node(state: AgentState) -> AgentState:
-    territory_id = state.get("territory_id")
-    if territory_id:
-        state["prioritization_results"] = prioritize_accounts(territory_id)
-    return state
-
-
-def rag_node(state: AgentState) -> AgentState:
-    query = state.get("user_query", "")
-    territory_id = state.get("territory_id")
-    docs = get_retrieved_documents(query)
-    if territory_id:
-        docs.extend([
-            {"title": "Territory policy", "content": " ".join(get_territory_rules(territory_id)), "source": "territory_rules", "category": "policy"}
-        ])
-    state["retrieved_documents"] = docs
-    return state
-
-
-def investigation_node(state: AgentState) -> AgentState:
-    accounts = state["account_data"].get("accounts", [])
-    findings = []
-    risks = []
-    opportunities = []
-    for account in accounts:
-        if account.get("growth", 0) > 0.12:
-            opportunities.append(f"Expansion opportunity for {account['name']}")
-        if account.get("risk_level", 0) > 0.5:
-            risks.append(f"At-risk account: {account['name']}")
-        if account.get("open_issues", 0) > 0:
-            findings.append(f"Open service issues for {account['name']}")
-    state["investigation_result"] = {
-        "account_id": accounts[0]["account_id"] if accounts else "",
-        "findings": findings,
-        "risks": risks,
-        "opportunities": opportunities,
-        "evidence": ["Account health summary", "Territory review"],
-        "policy_references": ["High risk accounts must have a documented action plan."],
-        "confidence": 0.88,
-        "requires_human_review": False,
-    }
-    return state
-
-
-def territory_planning_node(state: AgentState) -> AgentState:
-    territory_id = state.get("territory_id")
-    priority_accounts = [item["account_id"] for item in state.get("prioritization_results", [])[:3]]
-    state["territory_plan"] = {
-        "territory_id": territory_id,
-        "summary": f"Territory {territory_id} has stable growth and several high-value expansion opportunities.",
-        "priority_accounts": priority_accounts,
-        "recommended_actions": ["Review high-priority accounts", "Schedule account reviews", "Resolve at-risk service issues"],
-        "coverage_gaps": ["Follow-up with delayed opportunities"],
-        "risks": ["Service issue concentration", "Potential churn in lower engagement accounts"],
-        "sources": ["Territory rules", "Account KPIs"],
-    }
-    return state
-
-
-def next_best_action_node(state: AgentState) -> AgentState:
-    proposed = []
-    for item in state.get("prioritization_results", [])[:3]:
-        proposed.append({
-            "action_type": "SCHEDULE_ACCOUNT_REVIEW",
-            "account_id": item["account_id"],
-            "reason": "High priority account with growth potential and active opportunity pipeline.",
-            "required_approval": False,
-            "status": "PENDING",
-        })
-    state["proposed_actions"] = proposed
-    return state
-
-
-def validation_node(state: AgentState) -> AgentState:
-    if state.get("territory_id"):
-        state["validation_result"] = "PASS"
-    else:
-        state["validation_result"] = "RETRY"
-    return state
-
-
-def response_node(state: AgentState) -> AgentState:
-    territory_id = state.get("territory_id") or "Unknown"
-    plan = state.get("territory_plan", {})
-    state["final_response"] = (
-        f"Territory plan for {territory_id} is ready. "
-        f"Priority accounts: {', '.join(plan.get('priority_accounts', [])) or 'none'}. "
-        f"Recommended actions: {', '.join(plan.get('recommended_actions', []))}."
-    )
-    return state
+from backend.app.graph.nodes.context_nodes import investigation_node, rag_node
+from backend.app.graph.nodes.data_nodes import kpi_node, prioritization_node, territory_data_node
+from backend.app.graph.nodes.planning_nodes import next_best_action_node, territory_planning_node
+from backend.app.graph.nodes.response_nodes import response_node, validation_node
+from backend.app.graph.nodes.triage_node import triage_node
 
 
 def build_workflow():
