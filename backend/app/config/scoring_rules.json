@@ -1,0 +1,19 @@
+{
+  "version": "2026-10-01",
+  "weights": {
+    "opportunity_value": 0.30,
+    "past_sales_performance": 0.20,
+    "product_adoption": 0.15,
+    "unresolved_service_issues": 0.15,
+    "opportunity_stage": 0.15,
+    "territory_rules": 0.05
+  },
+  "service_issue_penalty_weight": 0.20,
+  "opportunity_value_normalizer": 250000,
+  "revenue_normalizer": 1000000,
+  "high_value_opportunity_threshold": 200000,
+  "thresholds": {
+    "high": 70.0,
+    "medium": 45.0
+  }
+}

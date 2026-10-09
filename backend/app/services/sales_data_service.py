@@ -1,7 +1,17 @@
 from __future__ import annotations
 
-from collections import defaultdict
+from datetime import date, datetime
 from typing import Any, Dict, List
+
+# FR-3: records whose freshness exceeds this threshold are flagged.
+try:
+    from backend.app.config.settings import settings as _settings
+
+    FRESHNESS_THRESHOLD_DAYS = _settings.data_freshness_threshold_days
+except Exception:  # pragma: no cover - settings are always importable in practice
+    FRESHNESS_THRESHOLD_DAYS = 30
+# Fixed reference date keeps freshness deterministic for tests and demos.
+REFERENCE_DATE = date(2026, 10, 9)
 
 
 def build_sample_data() -> Dict[str, Any]:
@@ -10,6 +20,9 @@ def build_sample_data() -> Dict[str, Any]:
             "territory_id": "T001",
             "name": "North Region",
             "owner": "Alicia Ng",
+            "owner_id": "mgr-001",
+            "source_system": "CRM",
+            "last_updated": "2026-10-05",
             "rules": [
                 "Accounts over $500k ARR require quarterly executive review.",
                 "High risk accounts must have a documented action plan.",
@@ -20,6 +33,9 @@ def build_sample_data() -> Dict[str, Any]:
             "territory_id": "T002",
             "name": "South Region",
             "owner": "Marco Diaz",
+            "owner_id": "mgr-002",
+            "source_system": "CRM",
+            "last_updated": "2026-10-06",
             "rules": [
                 "Expansion account plans require manager approval.",
                 "Renewal opportunities over 120 days require escalation.",
@@ -30,6 +46,9 @@ def build_sample_data() -> Dict[str, Any]:
             "territory_id": "T003",
             "name": "Central Region",
             "owner": "Priya Shah",
+            "owner_id": "mgr-003",
+            "source_system": "CRM",
+            "last_updated": "2026-10-04",
             "rules": [
                 "All customer escalations must be resolved within 5 business days.",
             ],
@@ -53,6 +72,14 @@ def build_sample_data() -> Dict[str, Any]:
             "expansion_potential": 0.78,
             "risk_level": 0.2,
             "owner": "Alicia Ng",
+            "owner_id": "mgr-001",
+            "source_system": "CRM",
+            "last_updated": "2026-10-05",
+            "preferred_contact_method": "EMAIL",
+            "permissions": {
+                "allowed_roles": ["SALES_MANAGER", "SALES_OPS", "AUDITOR"],
+                "allowed_user_ids": ["rep-042"],
+            },
         },
         {
             "account_id": "ACC1002",
@@ -69,6 +96,14 @@ def build_sample_data() -> Dict[str, Any]:
             "expansion_potential": 0.67,
             "risk_level": 0.42,
             "owner": "Alicia Ng",
+            "owner_id": "mgr-001",
+            "source_system": "CRM",
+            "last_updated": "2026-07-15",
+            "preferred_contact_method": "PHONE",
+            "permissions": {
+                "allowed_roles": ["SALES_MANAGER", "SALES_OPS", "AUDITOR"],
+                "allowed_user_ids": ["rep-042"],
+            },
         },
         {
             "account_id": "ACC2001",
@@ -85,6 +120,13 @@ def build_sample_data() -> Dict[str, Any]:
             "expansion_potential": 0.8,
             "risk_level": 0.1,
             "owner": "Marco Diaz",
+            "owner_id": "mgr-002",
+            "source_system": "CRM",
+            "last_updated": "2026-10-06",
+            "preferred_contact_method": "EMAIL",
+            "permissions": {
+                "allowed_roles": ["SALES_MANAGER", "SALES_OPS", "AUDITOR"],
+            },
         },
         {
             "account_id": "ACC2002",
@@ -101,6 +143,13 @@ def build_sample_data() -> Dict[str, Any]:
             "expansion_potential": 0.39,
             "risk_level": 0.76,
             "owner": "Marco Diaz",
+            "owner_id": "rep-042",
+            "source_system": "CRM",
+            "last_updated": "2026-10-03",
+            "preferred_contact_method": "PHONE",
+            "permissions": {
+                "allowed_roles": ["SALES_MANAGER", "SALES_OPS", "AUDITOR"],
+            },
         },
         {
             "account_id": "ACC3001",
@@ -117,6 +166,13 @@ def build_sample_data() -> Dict[str, Any]:
             "expansion_potential": 0.65,
             "risk_level": 0.22,
             "owner": "Priya Shah",
+            "owner_id": "mgr-003",
+            "source_system": "CRM",
+            "last_updated": "2026-09-20",
+            "preferred_contact_method": "EMAIL",
+            "permissions": {
+                "allowed_roles": ["SALES_MANAGER", "SALES_OPS", "AUDITOR"],
+            },
         },
     ]
 
@@ -172,8 +228,24 @@ def build_sample_data() -> Dict[str, Any]:
     ]
 
     service_issues = [
-        {"account_id": "ACC1002", "issue": "API latency complaint", "severity": "MEDIUM", "status": "OPEN"},
-        {"account_id": "ACC2002", "issue": "Dashboard outage", "severity": "HIGH", "status": "OPEN"},
+        {
+            "issue_id": "SI-1002",
+            "account_id": "ACC1002",
+            "issue": "API latency complaint",
+            "severity": "MEDIUM",
+            "status": "OPEN",
+            "source_system": "SUPPORT_DESK",
+            "last_updated": "2026-10-02",
+        },
+        {
+            "issue_id": "SI-2002",
+            "account_id": "ACC2002",
+            "issue": "Dashboard outage",
+            "severity": "HIGH",
+            "status": "OPEN",
+            "source_system": "SUPPORT_DESK",
+            "last_updated": "2026-10-07",
+        },
     ]
 
     contacts = [
@@ -186,6 +258,7 @@ def build_sample_data() -> Dict[str, Any]:
 
     playbooks = [
         {
+            "document_id": "playbook-product-expansion",
             "title": "Product Expansion Playbook",
             "category": "sales_playbook",
             "territory": "T001",
@@ -193,8 +266,10 @@ def build_sample_data() -> Dict[str, Any]:
             "content": "Focus on accounts with strong revenue growth and adoption gaps. Confirm decision maker, establish executive sponsor, and propose staged expansion steps.",
             "effective_date": "2026-01-01",
             "source": "sales_playbooks.pdf",
+            "last_updated": "2026-09-01",
         },
         {
+            "document_id": "playbook-at-risk-recovery",
             "title": "At Risk Account Recovery",
             "category": "account_management",
             "territory": "T002",
@@ -202,6 +277,40 @@ def build_sample_data() -> Dict[str, Any]:
             "content": "If revenue is declining and service issues are open, schedule a recovery review and align support, renewal options, and executive outreach.",
             "effective_date": "2026-02-01",
             "source": "account_recovery_policy.pdf",
+            "last_updated": "2026-09-15",
+        },
+        {
+            "document_id": "playbook-adoption-nudge",
+            "title": "Adoption Nudge Playbook",
+            "category": "sales_playbook",
+            "territory": "T003",
+            "product": "Operations Cloud",
+            "content": "For healthy accounts with room to expand, review usage, propose a training session and a lightweight add-on to raise product adoption.",
+            "effective_date": "2026-03-01",
+            "source": "sales_playbooks.pdf",
+            "last_updated": "2026-09-10",
+        },
+    ]
+
+    # FR-25: contact policies govern whether proposed outreach is permitted.
+    contact_policies = [
+        {
+            "policy_id": "CP-EMAIL",
+            "method": "EMAIL",
+            "allowed": True,
+            "notes": "Email outreach permitted during normal business hours.",
+        },
+        {
+            "policy_id": "CP-PHONE",
+            "method": "PHONE",
+            "allowed": True,
+            "notes": "Phone outreach permitted; avoid accounts with an unresolved high-severity issue.",
+        },
+        {
+            "policy_id": "CP-ONSITE",
+            "method": "ONSITE",
+            "allowed": False,
+            "notes": "Onsite visits require manager approval and are out of scope for v1 outreach.",
         },
     ]
 
@@ -213,6 +322,7 @@ def build_sample_data() -> Dict[str, Any]:
         "service_issues": service_issues,
         "contacts": contacts,
         "playbooks": playbooks,
+        "contact_policies": contact_policies,
     }
 
 
@@ -319,18 +429,90 @@ def prioritize_accounts(territory_id: str) -> List[Dict[str, Any]]:
     return sorted(results, key=lambda item: item["priority_score"], reverse=True)
 
 
+def get_dashboard_metrics() -> Dict[str, Any]:
+    high_priority = 0
+    for territory in DATA["territories"]:
+        high_priority += sum(
+            1
+            for item in prioritize_accounts(territory["territory_id"])
+            if item["priority_level"] == "HIGH"
+        )
+    return {
+        "total_territories": len(DATA["territories"]),
+        "total_accounts": len(DATA["accounts"]),
+        "high_priority_accounts": high_priority,
+        "open_opportunities": len(DATA["opportunities"]),
+        "pipeline_value": sum(item["value"] for item in DATA["opportunities"]),
+        "status": "ready",
+    }
+
+
 def get_retrieved_documents(query: str) -> List[Dict[str, Any]]:
     docs = []
     q = query.lower()
     for playbook in DATA["playbooks"]:
         if any(word in playbook["title"].lower() or word in playbook["content"].lower() for word in q.split()):
             docs.append({
-                "document_id": playbook["title"],
+                "document_id": playbook.get("document_id", playbook["title"]),
                 "title": playbook["title"],
                 "content": playbook["content"],
                 "source": playbook["source"],
                 "category": playbook["category"],
                 "effective_date": playbook["effective_date"],
                 "territory": playbook.get("territory"),
+                "last_updated": playbook.get("last_updated"),
             })
     return docs
+
+
+def get_all_accounts() -> List[Dict[str, Any]]:
+    return DATA["accounts"]
+
+
+def get_contact_policies() -> List[Dict[str, Any]]:
+    return DATA["contact_policies"]
+
+
+def get_contact_policy(method: str) -> Dict[str, Any]:
+    for policy in DATA["contact_policies"]:
+        if policy["method"] == method.upper():
+            return policy
+    return {}
+
+
+def get_playbooks() -> List[Dict[str, Any]]:
+    return DATA["playbooks"]
+
+
+def get_playbooks_for_territory(territory_id: str) -> List[Dict[str, Any]]:
+    return [book for book in DATA["playbooks"] if book.get("territory") in (None, territory_id)]
+
+
+def _parse_date(value: Any) -> date | None:
+    if isinstance(value, date):
+        return value
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def record_age_days(record: Dict[str, Any], reference: date | None = None) -> int | None:
+    """Return the age of a record in days, or None when no usable timestamp exists."""
+    parsed = _parse_date(record.get("last_updated"))
+    if parsed is None:
+        return None
+    ref = reference or REFERENCE_DATE
+    return (ref - parsed).days
+
+
+def is_record_stale(
+    record: Dict[str, Any],
+    threshold_days: int = FRESHNESS_THRESHOLD_DAYS,
+    reference: date | None = None,
+) -> bool:
+    """FR-3: flag records whose freshness exceeds the configurable threshold."""
+    age = record_age_days(record, reference=reference)
+    return age is not None and age > threshold_days

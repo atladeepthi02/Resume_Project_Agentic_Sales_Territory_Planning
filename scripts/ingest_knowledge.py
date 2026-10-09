@@ -1,5 +1,9 @@
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from backend.app.rag.vector_store import SalesKnowledgeRAG
-from backend.app.services.sales_data_service import get_retrieved_documents
 
 
 def main():

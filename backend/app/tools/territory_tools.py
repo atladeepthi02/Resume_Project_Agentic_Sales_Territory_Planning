@@ -1,4 +1,9 @@
-from backend.app.services.sales_data_service import get_account, get_accounts_by_territory, get_territory, get_territory_rules
+from backend.app.services.sales_data_service import (
+    get_accounts_by_territory,
+    get_territories,
+    get_territory,
+    get_territory_rules,
+)
 
 
 def get_territory_tool(territory_id: str):
@@ -8,7 +13,7 @@ def get_territory_tool(territory_id: str):
 def get_territories_tool():
     return {"territories": [
         {"territory_id": item["territory_id"], "name": item["name"], "owner": item["owner"]}
-        for item in get_territory("T001") and [{"territory_id": "T001", "name": "North Region", "owner": "Alicia Ng"}]
+        for item in get_territories()
     ]}
 
 

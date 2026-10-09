@@ -84,6 +84,10 @@ class WorkflowRequest(BaseModel):
     user_id: Optional[str] = None
 
 
+class ApprovalRequest(BaseModel):
+    decision: Literal["APPROVED", "REJECTED", "PENDING"] = "PENDING"
+
+
 class AgentState(BaseModel):
     session_id: Optional[str] = None
     user_id: Optional[str] = None

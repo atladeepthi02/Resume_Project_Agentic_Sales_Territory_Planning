@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     chroma_persist_directory: str = "./.chroma"
     cors_origins: str = "http://localhost:3000"
+    # FR-3: records older than this many days are flagged as stale.
+    data_freshness_threshold_days: int = 30
 
 
 settings = Settings()

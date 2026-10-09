@@ -2,8 +2,9 @@ import './globals.css';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Agentic Sales Territory Planning',
-  description: 'Multi-agent territory planning dashboard',
+  title: 'Sales Territory Planning Assistant',
+  description:
+    'Review prioritized accounts, understand the evidence, approve the plan and export approved actions.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
